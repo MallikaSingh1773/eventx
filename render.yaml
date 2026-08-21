@@ -1,17 +1,16 @@
-# EventX on Render: API (Docker + Postgres + Redis) and static frontend.
-# Connect this GitHub repo in the Render Dashboard → New → Blueprint.
-# Service URLs:
-#   API  https://eventx-api.onrender.com
-#   Web  https://eventx-web.onrender.com
+# Unique names so Render does not attach the old Express `eventx-api`.
+# After deploy:
+#   Web  https://eventx-java-web.onrender.com
+#   API  https://eventx-java-api.onrender.com
 
 services:
   - type: web
-    name: eventx-api
+    name: eventx-java-api
     runtime: docker
     plan: free
     dockerfilePath: ./eventx-backend/Dockerfile
     dockerContext: ./eventx-backend
-    healthCheckPath: /api/health
+    healthCheckPath: /api/events
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: render
@@ -19,31 +18,31 @@ services:
         generateValue: true
       - key: DB_HOST
         fromDatabase:
-          name: eventx-db
+          name: eventx-java-db
           property: host
       - key: DB_PORT
         fromDatabase:
-          name: eventx-db
+          name: eventx-java-db
           property: port
       - key: DB_USER
         fromDatabase:
-          name: eventx-db
+          name: eventx-java-db
           property: user
       - key: DB_PASSWORD
         fromDatabase:
-          name: eventx-db
+          name: eventx-java-db
           property: password
       - key: DB_NAME
         fromDatabase:
-          name: eventx-db
+          name: eventx-java-db
           property: database
       - key: REDIS_URL
         fromService:
           type: keyvalue
-          name: eventx-redis
+          name: eventx-java-redis
           property: connectionString
       - key: CORS_ORIGINS
-        value: https://eventx-web.onrender.com,https://*.onrender.com,http://localhost:*
+        value: https://eventx-java-web.onrender.com,https://*.onrender.com,http://localhost:*
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
@@ -52,7 +51,7 @@ services:
         sync: false
 
   - type: web
-    name: eventx-web
+    name: eventx-java-web
     runtime: static
     rootDir: eventx-frontend
     buildCommand: npm ci && npm run build
@@ -63,17 +62,17 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://eventx-api.onrender.com/api
+        value: https://eventx-java-api.onrender.com/api
       - key: VITE_RAZORPAY_KEY_ID
         sync: false
 
   - type: keyvalue
-    name: eventx-redis
+    name: eventx-java-redis
     plan: free
     ipAllowList: []
     maxmemoryPolicy: noeviction
 
 databases:
-  - name: eventx-db
+  - name: eventx-java-db
     plan: free
     postgresMajorVersion: 16
