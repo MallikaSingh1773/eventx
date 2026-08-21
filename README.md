@@ -170,6 +170,4 @@ Never commit `.env`.
 
 ---
 
-## License
 
-Private / student project unless otherwise stated.
