@@ -1,0 +1,236 @@
+.ticket-view-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: calc(100vh - 80px);
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-back:hover {
+  color: var(--text-primary);
+}
+
+.btn-print {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-print:hover {
+  opacity: 0.9;
+}
+
+.tickets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.ticket-wrapper {
+  background: white;
+  border-radius: 12px;
+  display: flex;
+  color: #1a1a1a;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.ticket-left {
+  flex: 2;
+  padding: 2rem;
+  position: relative;
+}
+
+.ticket-right {
+  flex: 1;
+  padding: 2rem;
+  background: #f8fafc;
+  border-left: 2px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Half circles for perforated effect */
+.ticket-right::before,
+.ticket-right::after {
+  content: '';
+  position: absolute;
+  left: -15px;
+  width: 30px;
+  height: 30px;
+  background: var(--bg-primary);
+  border-radius: 50%;
+}
+
+.ticket-right::before { top: -15px; }
+.ticket-right::after { bottom: -15px; }
+
+.event-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 1rem 0;
+  color: #0f172a;
+}
+
+.event-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.detail-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ticket-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.attendee-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.ticket-price {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+
+.seat-main {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--primary);
+  line-height: 1;
+  margin: 1rem 0;
+}
+
+.qr-code-container {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 8px;
+}
+
+.qr-code-img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+}
+
+.ticket-code {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+}
+
+.ticket-status {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #10b981;
+  color: white;
+}
+
+.loading-state, .error-state {
+  text-align: center;
+  padding: 4rem;
+  color: var(--text-secondary);
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .ticket-wrapper, .ticket-wrapper * {
+    visibility: visible;
+  }
+  .ticket-wrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin-bottom: 2rem;
+    box-shadow: none;
+    border: 1px solid #cbd5e1;
+  }
+  .ticket-right::before,
+  .ticket-right::after {
+    background: white; /* Match paper */
+  }
+}
+
+@media (max-width: 768px) {
+  .ticket-wrapper {
+    flex-direction: column;
+  }
+  .ticket-right {
+    border-left: none;
+    border-top: 2px dashed #cbd5e1;
+  }
+  .ticket-right::before,
+  .ticket-right::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .ticket-right::before { top: -15px; }
+  .ticket-right::after { bottom: -15px; display: none; }
+}

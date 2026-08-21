@@ -1,0 +1,88 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: eventx-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-eventxroot}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-eventx_db}
+      MYSQL_USER: eventx
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-eventx}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - eventx-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-ueventx", "-p${MYSQL_PASSWORD:-eventx}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    container_name: eventx-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - eventx-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./eventx-backend
+      dockerfile: Dockerfile
+    container_name: eventx-backend
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-eventx_db}
+      MYSQL_USERNAME: eventx
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-eventx}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-eventx-super-secret-key-that-should-be-changed-in-production-min-256-bits-long}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_placeholder}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-placeholder_secret}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-placeholder_webhook_secret}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - eventx-network
+
+  frontend:
+    build:
+      context: ./eventx-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_placeholder}
+    container_name: eventx-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - eventx-network
+
+networks:
+  eventx-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:

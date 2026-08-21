@@ -1,0 +1,80 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: eventx-backend
+
+  datasource:
+    url: jdbc:h2:file:./data/eventx_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 20
+        globally_quoted_identifiers: true
+        hbm2ddl:
+          halt_on_error: false
+    open-in-view: false
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000
+      client-type: lettuce
+      repositories:
+        enabled: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:eventx-super-secret-key-that-should-be-changed-in-production-min-256-bits-long}
+    access-token-expiration-ms: 900000
+    refresh-token-expiration-ms: 604800000
+
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID:rzp_test_placeholder}
+    key-secret: ${RAZORPAY_KEY_SECRET:placeholder_secret}
+    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:placeholder_webhook_secret}
+
+  seat-lock:
+    ttl-seconds: 300
+
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+logging:
+  level:
+    com.eventx: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+
+dotenv:
+  directory: ..
+  filename: .env
