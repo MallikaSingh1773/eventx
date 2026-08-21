@@ -1,78 +1,69 @@
-# EventX — Event Booking & Ticketing Platform
+# EventX
 
-A production-quality full-stack event booking platform built with **Spring Boot 3.5**, **React 18**, **MySQL**, **Redis**, and **Razorpay**. 
+Event booking and ticketing platform: discover events, lock seats, pay with Razorpay, and receive a QR ticket.
 
-## 🚀 Features
-
-- **User Authentication**: Secure JWT-based auth with access and refresh tokens.
-- **Role-based Access Control**: Separate flows for Users and Admins.
-- **Event Discovery**: Browse, search, and filter upcoming events.
-- **Interactive Seat Selection**: Choose seats from different venue categories (VIP, Premium, Regular).
-- **Concurrency Handling**: Redis TTL-based distributed locking to prevent double bookings during seat selection.
-- **Payment Integration**: End-to-end secure Razorpay payment flow (sandbox).
-- **Idempotent Payments**: Protection against duplicate payment processing and redundant webhooks.
-- **Digital Tickets**: Unique QR code generation for verified access.
-- **Admin Dashboard**: Comprehensive analytics, revenue tracking, and management of events, venues, bookings, and users.
-- **Responsive UI**: Premium, dark-mode-first glassmorphism design.
+Built as a full-stack product with a **React** client and a **Spring Boot** API, JWT auth, role-based access (attendee, organizer, admin), and webhook-aware payments.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## Architecture
 
-### Frontend
-- **React 18** (Vite)
-- **React Router v6**
-- **Axios** (with interceptors)
-- **Recharts** (Analytics)
-- **React Toastify** (Notifications)
-- **Vanilla CSS** (Custom Design System, CSS Variables)
+```
+Browser (React 18 + Vite)
+        │  HTTPS / JSON
+        ▼
+Spring Boot 3.3 (Java 17)
+  Spring Security + JWT
+  Spring Data JPA
+  Razorpay SDK · ZXing QR
+        │
+        ├── Local:     H2 file database  (profile `local`)
+        ├── Docker:    MySQL 8 + Redis 7
+        └── Render:    PostgreSQL 16 + Redis-compatible Key Value
+```
 
-### Backend
-- **Java 17** (LTS)
-- **Spring Boot 3.5.16**
-- **Spring Security + JWT**
-- **Spring Data JPA / Hibernate**
-- **MySQL 8** (Primary Data Store)
-- **Redis 7** (Caching & Distributed Locks)
-- **Razorpay Java SDK**
-- **ZXing** (QR Codes)
-- **Springdoc OpenAPI** (Swagger)
-
----
-
-## 💡 Backend Engineering Highlights (Interview Guide)
-
-Be prepared to discuss these key technical decisions in interviews:
-
-### 1. Redis Distributed Locking (Preventing Double Booking)
-**Problem:** Two users try to select the same seat simultaneously. If both hit the DB at the exact same millisecond, they might both get it.
-**Solution:** We use Redis to implement a temporary distributed lock. When a user selects seats, we attempt to acquire a lock in Redis (`SETNX` / `setIfAbsent`) with a TTL (e.g., 5 minutes). 
-- If the lock is acquired, the user has 5 minutes to complete the payment.
-- If they don't pay in time, the TTL expires automatically, making the seat available again.
-- If payment is successful, the lock is removed and the booking becomes permanently confirmed in the MySQL database.
-
-### 2. Idempotent Payment Processing
-**Problem:** What if the frontend sends the "Payment Success" callback multiple times? Or what if Razorpay fires the same webhook twice?
-**Solution:** The database uses a `UNIQUE` constraint on `razorpay_payment_id`. Before processing any payment confirmation, the backend checks if a payment with that ID already exists and has a `SUCCESS` status. If it does, the backend safely returns the existing success response without attempting to re-confirm the booking, generate duplicate tickets, or double-count revenue.
-
-### 3. Razorpay Signature Verification
-**Problem:** A malicious user alters the frontend JavaScript to send a fake "success" payload with an amount of ₹0 to the backend.
-**Solution:** We **never** trust the frontend. The backend recalculates the expected price from the database. When the frontend sends the success callback, the backend cryptographically verifies the `razorpay_signature` using the Razorpay API Secret (which is never exposed to the frontend). We use HMAC-SHA256. If the signature doesn't match, the payment is rejected.
-
-### 4. JWT Authentication with Refresh Tokens
-**Problem:** Keeping users logged in securely without exposing long-lived access tokens.
-**Solution:** 
-- **Access Tokens** are short-lived (15 minutes). If stolen, they quickly become useless.
-- **Refresh Tokens** are long-lived (7 days) and stored in the database. When the Access Token expires, the frontend Axios interceptor automatically uses the Refresh Token to request a new Access Token seamlessly.
-- **Logout** invalidates the Refresh Token in the database.
+| Layer | Stack |
+| --- | --- |
+| Client | React 18, Vite 5, React Router 6, Axios, Recharts, Lucide |
+| API | Spring Boot 3.3.5, Spring Security, JJWT, Validation |
+| Data | JPA / Hibernate · H2 (local) · MySQL (Docker) · PostgreSQL (Render) |
+| Locks | Redis `SET NX` + TTL; in-memory fallback if Redis is down |
+| Payments | Razorpay Checkout + HMAC verify + `payment.captured` webhook |
+| Tickets | ZXing QR codes |
+| Docs | Springdoc OpenAPI (`/swagger-ui.html`) |
 
 ---
 
-## 🛠️ Local Setup Instructions
+## Features
 
-### Easiest way to run (no accounts, MySQL, Redis, or Razorpay needed)
+- Register / login with access (15 min) and refresh (7 day) tokens  
+- Roles: **Attendee**, **Organizer**, **Admin**  
+- Search and filter published events  
+- Seat map with a timed hold before checkout  
+- Razorpay test payments; booking confirms from webhook or captured-status sync  
+- Unique `razorpay_payment_id`; amount checked against the booking total  
+- QR tickets after confirmation  
+- Organizer studio: venues, events, publish / cancel  
+- Admin analytics (revenue, bookings)
 
-Install **Java 17+** and **Node.js 18+** once. Then open two terminals:
+---
+
+## Repository layout
+
+```
+eventx-backend/     Spring Boot API
+eventx-frontend/    Vite React app
+render.yaml         Render Blueprint (Java API + static site + Postgres + Redis)
+docker-compose.yml  Local/prod-style MySQL + Redis + API + nginx UI
+```
+
+---
+
+## Local development
+
+**Requirements:** Java 17+, Maven, Node.js 18+.
+
+### Quick start (H2, no MySQL)
 
 ```powershell
 cd eventx-backend
@@ -85,85 +76,100 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`, create an account, select seats, and use **Complete Demo Booking** at checkout. The `local` profile uses an embedded H2 database, so no database setup is required. Data resets whenever the backend is stopped.
+- UI: [http://localhost:5173](http://localhost:5173)  
+- API: [http://localhost:8080](http://localhost:8080)  
+- Swagger: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
-### Full Razorpay / production setup
+The `local` profile uses a file H2 database under `eventx-backend/data/` (survives restarts). Redis is optional; seat locks fall back to process memory if Redis is not running.
 
-- Java 17+
-- Node.js 18+
-- MySQL 8+
-- Redis Server
-- Maven
+Copy `.env.example` to `.env` and add Razorpay **test** keys for real Checkout. Without keys, order creation is rejected until they are set.
 
-### 1. Environment Variables
-Copy `.env.example` to `.env` in the root directory and update the variables:
-```bash
-cp .env.example .env
-```
-Ensure you add your Razorpay Test API Keys from the [Razorpay Dashboard](https://dashboard.razorpay.com).
+### Seed accounts
 
-### 2. Start Services (MySQL & Redis)
-If you have Docker, you can quickly spin up the databases:
-```bash
-docker compose up -d mysql redis
-```
-
-### 3. Start Backend
-```bash
-cd eventx-backend
-./mvnw spring-boot:run
-```
-The backend will run on `http://localhost:8080`.
-**Swagger API Docs:** `http://localhost:8080/swagger-ui/index.html`
-*Note: The database schema and initial seed data will be created automatically on the first run.*
-
-### 4. Start Frontend
-```bash
-cd eventx-frontend
-npm install
-npm run dev
-```
-The frontend will run on `http://localhost:5173`.
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@eventx.com` | `Admin@123` |
+| Organizer | `organizer@eventx.com` | `Organizer@123` |
+| Attendee | `john@example.com` | `User@123` |
 
 ---
 
-## Docker Deployment
+## Docker
 
-This machine needs **Docker Desktop**. Then from the project root:
+From the repo root (Docker Desktop required):
 
 ```powershell
 docker compose up --build
 ```
 
-Open **http://localhost:3000**. Nginx serves the UI and proxies `/api` to Spring Boot. MySQL and Redis run in the same compose stack.
-
-Razorpay webhooks need a public URL. After you put the stack on a host, set the webhook to `https://<your-domain>/api/payments/webhook`.
+App: [http://localhost:3000](http://localhost:3000). Nginx serves the UI and proxies `/api` to Spring Boot.
 
 ---
 
-## 🧪 Testing
+## Render
 
-The backend includes a comprehensive test suite (Unit and Integration tests).
-```bash
-cd eventx-backend
-./mvnw test
-```
+Blueprint file: `render.yaml`.
 
-## 📚 API Endpoints Summary
+| Service | Purpose |
+| --- | --- |
+| `eventx-java-web` | Static frontend |
+| `eventx-java-api` | Spring Boot (Docker) |
+| `eventx-java-db` | PostgreSQL |
+| `eventx-java-redis` | Key Value (Redis protocol) |
 
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login
-- `GET /api/events` - Get published events (paginated/filtered)
-- `GET /api/events/{id}/seats` - Get seat map and availability
-- `POST /api/bookings/lock-seats` - Lock selected seats (creates pending booking)
-- `POST /api/payments/create-order` - Create Razorpay order
-- `POST /api/payments/verify` - Verify frontend payment callback
-- `POST /api/payments/webhook` - Razorpay webhook handler
-- `GET /api/tickets/{id}` - Get digital ticket with QR code
-- `GET /api/admin/analytics/overview` - Admin dashboard stats
+Typical URLs after a successful deploy:
+
+- Site: `https://eventx-java-web.onrender.com`  
+- API: `https://eventx-java-api.onrender.com`  
+- Webhook: `https://eventx-java-api.onrender.com/api/payments/webhook`
+
+Free Render allows **one** free Postgres and **one** free Key Value instance per account. The first Docker API build often takes 10–20 minutes. Free web services sleep; the first request after idle can take 30–60 seconds.
+
+Do not attach this Blueprint to an existing Node/Express service named `eventx-api`. Use **Create all as new services**.
 
 ---
 
-## 👤 Default Seed Accounts
-- **Admin**: `admin@eventx.com` / `Admin@123`
-- **User**: `john@example.com` / `User@123`
+## Payments
+
+1. Client creates a Razorpay order from a pending booking.  
+2. Checkout returns order / payment ids; the API stores them after signature check.  
+3. Booking is confirmed only when Razorpay reports **captured** (webhook `payment.captured`, or server-side fetch while the client polls status).  
+4. Duplicate payment ids and ticket generation are idempotent.
+
+Set the Razorpay webhook URL to the public `/api/payments/webhook` endpoint and use a dedicated webhook secret in production.
+
+---
+
+## Selected API routes
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `POST` | `/api/auth/register` | `accountType`: `USER` or `ORGANIZER` |
+| `POST` | `/api/auth/login` | JWT pair |
+| `GET` | `/api/events` | Published events |
+| `POST` | `/api/bookings/lock-seats` | Timed seat hold |
+| `POST` | `/api/payments/create-order` | Razorpay order |
+| `POST` | `/api/payments/verify` | Record Checkout ids (does not confirm alone) |
+| `GET` | `/api/payments/booking/{id}` | Poll confirmation |
+| `POST` | `/api/payments/webhook` | Razorpay (public) |
+| `GET/POST` | `/api/organizer/**` | Organizer or admin |
+| `GET` | `/api/admin/**` | Admin |
+
+---
+
+## Environment
+
+See `.env.example`. Important variables:
+
+- `JWT_SECRET`  
+- `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET`  
+- `VITE_API_URL` (frontend build; production should be the public API `…/api`)  
+- `VITE_RAZORPAY_KEY_ID` (public key only)
+
+Never commit `.env`.
+
+---
+
+## License
+
+Private / student project unless otherwise stated.
