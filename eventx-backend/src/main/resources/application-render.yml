@@ -22,12 +22,14 @@ spring:
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
-  data:
-    redis:
-      url: ${REDIS_URL}
-
+  # No Redis in this deployment. Without this exclusion Spring would still build
+  # a StringRedisTemplate pointing at localhost, and every seat lock would pay a
+  # failed connection before falling back. Leaving the bean out entirely makes
+  # SeatLockServiceImpl take its in-memory path directly.
   autoconfigure:
-    exclude: []
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
 app:
   cors:

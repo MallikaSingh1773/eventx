@@ -1,48 +1,42 @@
-# Unique names so Render does not attach the old Express `eventx-api`.
-# After deploy:
-#   Web  https://eventx-java-web.onrender.com
-#   API  https://eventx-java-api.onrender.com
+# Render blueprint for EventX.
+#
+#   Render dashboard -> New -> Blueprint -> pick this repository
+#
+# Two services only. The database lives on Neon rather than Render, so it is not
+# subject to Render's one-free-database-per-workspace limit or its 30 day expiry,
+# and Redis is left out entirely: the seat lock service falls back to in-process
+# locks, which is correct for a single instance deployment.
 
 services:
   - type: web
     name: eventx-java-api
     runtime: docker
     plan: free
+    region: singapore
     dockerfilePath: ./eventx-backend/Dockerfile
     dockerContext: ./eventx-backend
-    healthCheckPath: /api/events
+    healthCheckPath: /api/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: render
+      - key: JAVA_OPTS
+        value: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC
       - key: JWT_SECRET
         generateValue: true
+      # PostgreSQL connection details, taken from the Neon dashboard.
       - key: DB_HOST
-        fromDatabase:
-          name: eventx-java-db
-          property: host
+        sync: false
       - key: DB_PORT
-        fromDatabase:
-          name: eventx-java-db
-          property: port
-      - key: DB_USER
-        fromDatabase:
-          name: eventx-java-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: eventx-java-db
-          property: password
+        value: "5432"
       - key: DB_NAME
-        fromDatabase:
-          name: eventx-java-db
-          property: database
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: eventx-java-redis
-          property: connectionString
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
       - key: CORS_ORIGINS
-        value: https://eventx-java-web.onrender.com,https://*.onrender.com,http://localhost:*
+        value: https://eventx-java-web.onrender.com,http://localhost:5173
+      # Razorpay test keys. Payments stay in test mode until these are replaced.
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
@@ -65,14 +59,3 @@ services:
         value: https://eventx-java-api.onrender.com/api
       - key: VITE_RAZORPAY_KEY_ID
         sync: false
-
-  - type: keyvalue
-    name: eventx-java-redis
-    plan: free
-    ipAllowList: []
-    maxmemoryPolicy: noeviction
-
-databases:
-  - name: eventx-java-db
-    plan: free
-    postgresMajorVersion: 16
