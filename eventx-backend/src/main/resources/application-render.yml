@@ -17,19 +17,20 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        globally_quoted_identifiers: true
+        # globally_quoted_identifiers is deliberately NOT set. It quotes the
+        # column type as well as the identifier, so a columnDefinition of TEXT
+        # is emitted as "TEXT", which PostgreSQL rejects as an unknown type, and
+        # the events and tickets tables are then never created.
         default_batch_fetch_size: 20
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
-  # No Redis in this deployment. Without this exclusion Spring would still build
-  # a StringRedisTemplate pointing at localhost, and every seat lock would pay a
-  # failed connection before falling back. Leaving the bean out entirely makes
-  # SeatLockServiceImpl take its in-memory path directly.
+  data:
+    redis:
+      url: ${REDIS_URL}
+
   autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+    exclude: []
 
 app:
   cors:

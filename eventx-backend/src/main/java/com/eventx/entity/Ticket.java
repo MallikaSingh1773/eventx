@@ -33,7 +33,9 @@ public class Ticket {
     @Column(unique = true, nullable = false)
     private String ticketCode;
 
-    @Column(columnDefinition = "LONGTEXT")
+    // TEXT rather than LONGTEXT: LONGTEXT is MySQL only and PostgreSQL rejects it.
+    // TEXT exists in both, and a base64 QR payload is a few kilobytes at most.
+    @Column(columnDefinition = "TEXT")
     private String qrCodeData;
 
     @Enumerated(EnumType.STRING)
